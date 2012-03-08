@@ -1,3 +1,10 @@
+0.012 8 Mar 2012
+
+ - add support for screen capture on OS X Lion.
+   https://rt.cpan.org/Ticket/Display.html?id=72649
+
+ - now requires Imager 0.88 for i_psamp()
+
 0.011 23 Nov 2011
 
 - transition to git
