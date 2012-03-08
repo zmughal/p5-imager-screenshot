@@ -1,7 +1,7 @@
 #!perl -w
 use strict;
 use ExtUtils::MakeMaker;
-use Imager 0.54;
+use Imager 0.88;
 use Imager::ExtUtils;
 use Config;
 use File::Spec;
@@ -77,7 +77,7 @@ my %opts =
    VERSION_FROM => 'Screenshot.pm',
    OBJECT => "@objs",
    PREREQ_PM => {
-		 'Imager'    => 0.69,
+		 'Imager'    => 0.88,
 		},
    INC => Imager::ExtUtils->includes,
    TYPEMAPS => [ Imager::ExtUtils->typemap ],
@@ -109,11 +109,11 @@ if ($eu_mm_version >= 6.46) {
     {
      configure_requires => 
      {
-      Imager => "0.69"
+      Imager => "0.88"
      },
      build_requires => 
      {
-      Imager => "0.69",
+      Imager => "0.88",
       "Test::More" => "0.47",
      },
      dynamic_config => 1,
