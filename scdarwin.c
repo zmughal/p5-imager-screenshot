@@ -130,6 +130,7 @@ imss_darwin(i_img_dim left, i_img_dim top, i_img_dim right, i_img_dim bottom) {
     i_tags_setn(&im->tags, "ss_window_width", width);
     i_tags_setn(&im->tags, "ss_window_height", height);
     i_tags_set(&im->tags, "ss_type", "Darwin", 6);
+    i_tags_set(&im->tags, "ss_variant", "<11", 3);
     i_tags_setn(&im->tags, "ss_left", left);
     i_tags_setn(&im->tags, "ss_top", top);
   }

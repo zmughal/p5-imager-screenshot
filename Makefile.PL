@@ -42,12 +42,20 @@ if (find_header('windows.h', "Win32 header")
   print "Found Win32\n";
 }
 
-if ($^O eq "darwin") {
+if ($^O eq "darwin" and my ($rel) = `uname -r` =~ /^([0-9]+)/) {
   # this test is overly simple
-  push @objs, "scdarwin.o";
-  push @cflags, "-DSS_DARWIN";
-  push @lddlflags, qw/-framework OpenGL -framework Cocoa/;
-  print "Found OS X\n";
+  if ($rel < 11) {
+    push @objs, "scdarwin.o";
+    push @cflags, "-DSS_DARWIN";
+    push @lddlflags, qw/-framework OpenGL -framework Cocoa/;
+    print "Found OS X (<11)\n";
+  }
+  else {
+    push @objs, "scdarwin2.o";
+    push @cflags, "-DSS_DARWIN";
+    push @lddlflags, qw/-framework Cocoa/;
+    print "Found OS X (>=11)\n";
+  }
 }
 
 unless (@objs > 1) {

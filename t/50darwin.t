@@ -18,13 +18,22 @@ unless ($im) {
     or plan skip_all => "User doen't have a display";
 }
 
-plan tests => 7;
+plan tests => 8;
 
 {
   my $im = screenshot(darwin => 0);
   ok($im, "got an image");
-  is($im->getchannels, 3, "we have some color");
 
+  my $variant = $im->tags(name => "ss_variant");
+ SKIP:
+  {
+    # only the older version guarantees 3 channels
+    $variant eq "<11"
+      or skip "we can't be sure how many channels Lion returns", 1;
+    is($im->getchannels, 3, "we have some color");
+  }
+
+  like($variant, qr/^(<11|11\+)$/, "check ss_variant tag");
   is($im->tags(name => "ss_window_width"), $im->getwidth,
      "check ss_window_width tag");
   is($im->tags(name => 'ss_window_height'), $im->getheight,
