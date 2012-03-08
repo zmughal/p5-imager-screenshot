@@ -16,3 +16,4 @@ vc60\.pdb
 ^dll\.exp$
 ^dll\.base$
 \#
+^\.git
