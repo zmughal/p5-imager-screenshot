@@ -7,13 +7,15 @@ use Config;
 use File::Spec;
 use Getopt::Long;
 use lib "inc";
-use Devel::CheckLib;
+use Imager::Probe;
 
 my @incpaths; # places to look for headers
 my @libpaths; # places to look for libraries
+my $verbose;
 
 GetOptions("incpath=s", \@incpaths,
-           "libpath=s" => \@libpaths);
+           "libpath=s" => \@libpaths,
+	   "v|verbose" => \$verbose);
 
 my @objs = qw/Screenshot.o/;
 my @cflags;
@@ -21,21 +23,46 @@ my @lflags;
 my @lddlflags;
 my %seen_incdir;
 my %seen_libdir;
-my $X11_lib = $^O eq 'cygwin' ? 'X11.dll' : 'X11';
-if (find_header("X11/Xlib.h", "X11 header") 
-    and find_lib($X11_lib, "X11 library")) {
+my @inc = Imager::ExtUtils->includes;
+my %x11_probe =
+  (
+   name => "X11",
+   libbase => "X11",
+   inccheck => sub { -e File::Spec->catfile($_[0], "X11/Xlib.h") },
+   verbose => $verbose,
+   libpath => [ @libpaths, "/usr/X11R6/lib", "/usr/X11/lib" ],
+   incpath => [ @incpaths, "/usr/X11R6/include", "/usr/X11/include" ],
+  );
+$x11_probe{alternatives} =
+  [
+   {
+     altname => "Cygwin",
+     libbase => "X11.dll",
+   },
+  ] if $^O eq "cygwin";
+my $x11_result = Imager::Probe->probe(\%x11_probe);
+if ($x11_result) {
   push @objs, 'scx11.o';
-  push @cflags, '-DSS_X11';
-  push @lflags, '-l'.$X11_lib;
+  push @cflags, '-DSS_X11', $x11_result->{DEFINE};
+  push @lflags, $x11_result->{LIBS};
+  push @inc, $x11_result->{INC};
   print "Found X11\n";
 }
-if (find_header('windows.h', "Win32 header")
-    && find_lib('gdi32', "Win32 library")
-    || check_lib(header => "windows.h",
-		 lib => "gdi32",
-		 title => "Win32")) {
+my %win32_probe =
+  (
+   name => "Win32",
+   inccheck => sub { -e File::Spec->catfile($_[0], "windows.h") },
+   libbase => "gdi32",
+   testcode => _win32_test_code(),
+   testcodeheaders => [ "stdio.h", "string.h", "windows.h" ],
+   incpath => \@incpaths,
+   libpath => \@libpaths,
+   verbose => $verbose,
+  );
+my $win32_result = Imager::Probe->probe(\%win32_probe);
+if ($win32_result) {
   push @objs, 'scwin32.o', 'svwin32.o';
-  push @cflags, '-DSS_WIN32';
+  push @cflags, '-DSS_WIN32', $win32_result->{DEFINE};
   if ($^O eq 'cygwin') {
     push @lflags, '-L/usr/lib/w32api', '-lgdi32';
   }
@@ -78,8 +105,9 @@ my %opts =
    OBJECT => "@objs",
    PREREQ_PM => {
 		 'Imager'    => 0.88,
+		 'Imager::Probe' => 0,
 		},
-   INC => Imager::ExtUtils->includes,
+   INC => "@inc",
    TYPEMAPS => [ Imager::ExtUtils->typemap ],
   );
 
@@ -109,7 +137,8 @@ if ($eu_mm_version >= 6.46) {
     {
      configure_requires => 
      {
-      Imager => "0.88"
+      Imager => "0.88",
+      'Imager::Probe' => 0,
      },
      build_requires => 
      {
@@ -128,107 +157,12 @@ if ($eu_mm_version >= 6.46) {
 
 WriteMakefile(%opts);
 
-my @incs;
-sub header_search_path {
-  @incs and return @incs;
-
-  push @incs, map {; split /\Q$Config{path_sep}/ } @incpaths;
-  push @incs, split /\Q$Config{path_sep}/, $ENV{IM_INCPATH}
-    if defined $ENV{IM_INCPATH};
-  push @incs, '/usr/include', '/usr/X11R6/include'
-    unless $^O eq 'MSWin32' && $Config{cc} =~ /\bcl\b/;
-  push @incs, split /\Q$Config{path_sep}/, $ENV{INCLUDE}
-    if $^O eq 'MSWin32' && $Config{cc} =~ /\bcl\b/ and $ENV{INCLUDE};
-  push @incs, split ' ', $Config{locincpth}
-    if $Config{locincpth};
-  push @incs, split /\Q$Config{path_sep}/, $Config{incpath}
-    if $Config{incpath};
-  push @incs, '/usr/include/w32api', '/usr/X11R6/include'
-    if $^O eq 'cygwin';
-
-  @incs = grep -d, @incs;
-
-  @incs;
+sub _win32_test_code {
+  return <<'CODE';
+HDC dc = GetDC(NULL);
+HDC bmpDc = CreateCompatibleDC(dc);
+DeleteDC(bmpDc);
+ReleaseDC(NULL, dc);
+return 0;
+CODE
 }
-
-my @libs;
-sub library_search_path {
-  @libs and return @libs;
-
-  push @libs, map {; split /\Q$Config{path_sep}/ } @libpaths;
-  push @incs, split /\Q$Config{path_sep}/, $ENV{IM_LIBPATH}
-    if defined $ENV{IM_LIBPATH};
-  push @libs, '/usr/lib', '/usr/X11R6/lib'
-    unless $^O eq 'MSWin32' && $Config{cc} =~ /\bcl\b/;
-  push @libs, split /\Q$Config{path_sep}/, $ENV{LIB}
-    if $^O eq 'MSWin32' && $Config{cc} =~ /\bcl\b/ and $ENV{LIB};
-  push @libs, split ' ', $Config{loclibpth}
-    if $Config{loclibpth};
-  push @libs, split /\Q$Config{path_sep}/, $Config{libpth}
-    if $Config{libpth};
-  push @libs, '/usr/lib/w32api', '/usr/X11R6/lib'
-    if $^O eq 'cygwin';
-
-  @libs = grep -d, @libs;
-
-  @libs;
-}
-
-sub _find_file {
-  my ($name, @where) = @_;
-
-  grep -f File::Spec->catfile($_, $name), @where;
-}
-
-sub _quote_spaces {
-  my $path = shift;
-
-  if ($path =~ / /) {
-    return qq("$path");
-  }
-
-  return $path;
-}
-
-sub find_header {
-  my ($name, $description) = @_;
-  my @found = _find_file($_[0], header_search_path());
-
-  if (@found) {
-    push @cflags, _quote_spaces("-I$_") for grep !$seen_incdir{$_}, @found;
-    @seen_incdir{@found} = (1) x @found;
-  }
-  else {
-    print STDERR "Could not find $name ($description)\n";
-  }
-
-  @found;
-}
-
-sub find_lib {
-  my ($name, $description) = shift;
-  my @found;
-  my $libname;
-  if ($^O eq 'MSWin32' && $Config{_a} eq '.lib') {
-    $libname = $name . $Config{_a};
-    @found = _find_file($libname, library_search_path());
-  }
-  else {
-    $libname = "lib" . $name . $Config{_a};
-    @found = _find_file($libname, library_search_path());
-    if (!@found && $Config{so}) {
-      $libname = "lib" . $name . "." . $Config{so};
-      @found = _find_file($libname, library_search_path());
-    }
-  }
-  if (@found) {
-    push @lflags, _quote_spaces("-L$_") for grep !$seen_libdir{$_}, @found;
-    @seen_libdir{@found} = (1) x @found;
-  }
-  else {
-    print STDERR "Could not find $libname ($description)\n";
-  }
-
-  @found;
-}
-
