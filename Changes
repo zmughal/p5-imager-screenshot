@@ -1,3 +1,4 @@
+0.013 11 Jan 2013
 
  - use Imager::Probe to find libraries instead of custom code
    https://rt.cpan.org/Ticket/Display.html?id=82489
