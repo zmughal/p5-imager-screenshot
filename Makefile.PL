@@ -106,6 +106,7 @@ my %opts =
    PREREQ_PM => {
 		 'Imager'    => 0.88,
 		 'Imager::Probe' => 0,
+		 'XSLoader'  => 0,
 		},
    INC => "@inc",
    TYPEMAPS => [ Imager::ExtUtils->typemap ],
