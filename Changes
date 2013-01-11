@@ -1,3 +1,9 @@
+
+ - use Imager::Probe to find libraries instead of custom code
+   https://rt.cpan.org/Ticket/Display.html?id=82489
+
+ - require XSLoader without the DynaLoader fallback
+
 0.012 8 Mar 2012
 
  - add support for screen capture on OS X Lion.
