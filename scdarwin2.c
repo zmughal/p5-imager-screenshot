@@ -76,7 +76,10 @@ imss_darwin(i_img_dim left, i_img_dim top, i_img_dim right, i_img_dim bottom) {
   bytes_per_row = (bytes_per_row + 15) & ~15U;
   
   unsigned char *data = mymalloc(bytes_per_row * height);
-  CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+  /*CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();*/
+  CGColorSpaceRef color_space = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+  /*CGColorSpaceRef color_space = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);*/
+  /*CGColorSpaceRef color_space = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);*/
 
   CGContextRef context = CGBitmapContextCreate
     (data, width, height, 8, bytes_per_row, color_space,
